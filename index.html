@@ -1,0 +1,1211 @@
+<!DOCTYPE html>
+<html lang="si">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>සුභ වෙසක් මංගල්‍යයක්</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+Sinhala:wght@300;400;600&display=swap');
+
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --sky-deep: #020510;
+    --text-main: #f5e8c0;
+  }
+
+  html, body {
+    width: 100%; height: 100%;
+    background: var(--sky-deep);
+  }
+  body {
+    overflow-x: hidden;
+    overflow-y: auto;
+    cursor: none;
+  }
+
+  /* ── CANVASES (always behind everything) ── */
+  canvas#bg        { position: fixed; inset: 0; z-index: 0; }
+  canvas#fireflies { position: fixed; inset: 0; z-index: 2; pointer-events: none; }
+  canvas#particles { position: fixed; inset: 0; z-index: 1; pointer-events: none; }
+
+  /* ── SPLASH SCREEN ──────────────────────────────────────────── */
+  #splash {
+    position: fixed; inset: 0; z-index: 50;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 0;
+    background: transparent;
+    pointer-events: auto;
+    transition: opacity 1.4s ease;
+  }
+  #splash.fading { opacity: 0; pointer-events: none; }
+
+  #splash-moon {
+    width: clamp(80px, 18vw, 130px);
+    height: clamp(80px, 18vw, 130px);
+    border-radius: 50%;
+    background: radial-gradient(circle at 38% 35%, #fffde8 0%, #fff3c0 40%, #f0d890 75%, #d4a840 100%);
+    box-shadow:
+      0 0 30px 15px rgba(255,240,160,0.22),
+      0 0 80px 40px rgba(255,220,100,0.12),
+      0 0 180px 80px rgba(255,200,80,0.07),
+      0 0 320px 140px rgba(255,180,60,0.04);
+    animation: moonBreathe 8s ease-in-out infinite, moonAppear 3s ease-out forwards;
+    opacity: 0;
+    margin-bottom: clamp(22px, 5vh, 42px);
+  }
+  @keyframes moonAppear  { to { opacity: 1; transform: scale(1); } from { opacity: 0; transform: scale(0.82); } }
+  @keyframes moonBreathe {
+    0%,100% { box-shadow: 0 0 30px 15px rgba(255,240,160,0.22), 0 0 80px 40px rgba(255,220,100,0.12), 0 0 180px 80px rgba(255,200,80,0.07); }
+    50%     { box-shadow: 0 0 45px 22px rgba(255,240,160,0.34), 0 0 120px 55px rgba(255,220,100,0.18), 0 0 260px 110px rgba(255,200,80,0.10); }
+  }
+
+  #splash-msg {
+    font-family: 'Noto Serif Sinhala', serif;
+    font-size: clamp(16px, 4.5vw, 30px);
+    font-weight: 300;
+    color: rgba(245, 228, 175, 0.92);
+    letter-spacing: 0.06em;
+    text-align: center;
+    text-shadow: 0 0 24px rgba(255,210,100,0.55), 0 0 60px rgba(255,190,60,0.22);
+    animation: msgAppear 3s 1s ease-out forwards;
+    opacity: 0;
+    margin-bottom: clamp(10px, 3vh, 22px);
+    padding: 0 24px;
+    line-height: 1.7;
+  }
+  @keyframes msgAppear { from { opacity:0; letter-spacing:0.14em; } to { opacity:1; letter-spacing:0.06em; } }
+
+  #splash-sub {
+    font-family: 'Noto Serif Sinhala', serif;
+    font-size: clamp(11px, 2.4vw, 16px);
+    font-weight: 300;
+    color: rgba(220, 195, 130, 0.55);
+    letter-spacing: 0.10em;
+    text-align: center;
+    text-shadow: 0 0 16px rgba(255,200,80,0.25);
+    animation: msgAppear 3s 2.2s ease-out forwards;
+    opacity: 0;
+    margin-bottom: clamp(36px, 9vh, 64px);
+    padding: 0 24px;
+  }
+
+  #splash-btn {
+    font-family: 'Noto Serif Sinhala', serif;
+    font-size: clamp(12px, 3vw, 17px);
+    font-weight: 300;
+    color: rgba(240, 215, 145, 0.85);
+    background: rgba(255, 200, 80, 0.06);
+    border: 1px solid rgba(255, 200, 80, 0.28);
+    border-radius: 40px;
+    padding: clamp(10px,2.5vh,16px) clamp(28px,7vw,52px);
+    cursor: pointer;
+    letter-spacing: 0.12em;
+    animation: btnAppear 2.5s 3s ease-out forwards;
+    opacity: 0;
+    transition: background 0.3s, box-shadow 0.3s, color 0.3s, transform 0.15s;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  @keyframes btnAppear {
+    from { opacity:0; transform: translateY(10px); }
+    to   { opacity:1; transform: translateY(0); }
+  }
+  #splash-btn:hover, #splash-btn:active {
+    background: rgba(255,200,80,0.16);
+    color: #ffd890;
+    box-shadow: 0 0 28px rgba(255,190,60,0.25);
+    transform: scale(1.04);
+  }
+
+  #splash-btn-wrap {
+    position: relative;
+    display: inline-flex;
+    animation: btnAppear 2.5s 3s ease-out forwards;
+    opacity: 0;
+  }
+  #splash-btn-wrap::before {
+    content: '';
+    position: absolute; inset: -8px;
+    border-radius: 50px;
+    border: 1px solid rgba(255,200,80,0.15);
+    animation: ringPulse 2.8s 4s ease-out infinite;
+  }
+  @keyframes ringPulse {
+    0%   { transform: scale(1);    opacity: 0.6; }
+    70%  { transform: scale(1.12); opacity: 0; }
+    100% { transform: scale(1.12); opacity: 0; }
+  }
+
+  /* ── MAIN SCENE ── */
+  #scene {
+    position: fixed; inset: 0; z-index: 3;
+    display: flex; flex-direction: column; align-items: center;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 1.2s 0.3s ease;
+  }
+  #scene.visible { opacity: 1; }
+
+  #moon-wrap {
+    position: absolute;
+    top: 5vh; left: 50%;
+    transform: translateX(-50%);
+    pointer-events: auto;
+  }
+  #main-moon {
+    width: 90px; height: 90px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 38% 35%, #fffde8 0%, #fff3c0 40%, #f0d890 75%, #d4a840 100%);
+    box-shadow:
+      0 0 30px 15px rgba(255,240,160,0.18),
+      0 0 80px 40px rgba(255,220,100,0.10),
+      0 0 160px 80px rgba(255,200,80,0.06),
+      0 0 300px 150px rgba(255,180,60,0.03);
+    animation: moonBreathe 8s ease-in-out infinite;
+    cursor: pointer;
+    transition: box-shadow 0.3s;
+  }
+  #main-moon:hover {
+    box-shadow:
+      0 0 50px 25px rgba(255,240,160,0.35),
+      0 0 120px 60px rgba(255,220,100,0.20),
+      0 0 250px 120px rgba(255,200,80,0.12);
+  }
+
+  #main-text {
+    position: absolute;
+    top: calc(5vh + 106px);
+    left: 50%; transform: translateX(-50%);
+    text-align: center;
+    font-family: 'Noto Serif Sinhala', serif;
+    font-size: clamp(12px, 1.6vw, 22px);
+    font-weight: 300;
+    color: var(--text-main);
+    letter-spacing: 0.08em;
+    line-height: 1.9;
+    text-shadow: 0 0 20px rgba(255,220,120,0.5), 0 0 50px rgba(255,200,80,0.2);
+    white-space: nowrap;
+    pointer-events: none;
+  }
+  /* ── CHANGE 04: sub-text now has two lines ── */
+  #sub-text {
+    position: absolute;
+    top: calc(5vh + 148px);
+    left: 50%; transform: translateX(-50%);
+    text-align: center;
+    font-family: 'Noto Serif Sinhala', serif;
+    font-size: clamp(10px, 1.1vw, 16px);
+    font-weight: 300;
+    color: rgba(255, 220, 140, 0.65);
+    letter-spacing: 0.12em;
+    text-shadow: 0 0 18px rgba(255,200,80,0.3);
+    white-space: nowrap;
+    pointer-events: none;
+    line-height: 2.0;
+  }
+  /* ── CHANGE 04: new third line, smaller and dimmer ── */
+  #sub-text-2 {
+    position: absolute;
+    top: calc(5vh + 200px);
+    left: 50%; transform: translateX(-50%);
+    text-align: center;
+    font-family: 'Noto Serif Sinhala', serif;
+    font-size: clamp(9px, 0.95vw, 13px);
+    font-weight: 300;
+    color: rgba(200, 175, 110, 0.42);
+    letter-spacing: 0.08em;
+    text-shadow: 0 0 14px rgba(255,180,60,0.18);
+    white-space: nowrap;
+    pointer-events: none;
+    line-height: 1.85;
+    max-width: 90vw;
+    white-space: normal;
+    width: max-content;
+    max-width: min(700px, 90vw);
+  }
+
+  /* ── LANTERN CANVAS AREA ── */
+  #lantern-scroll-area {
+    position: absolute; top: 0; left: 0;
+    width: 100%; pointer-events: none; z-index: 4;
+  }
+  canvas#lanterns {
+    position: absolute; top: 0; left: 0;
+    z-index: 4; pointer-events: auto;
+  }
+
+  /* ── THOUGHTS (random scheduler — unchanged) ── */
+  #thoughts-layer {
+    position: fixed; inset: 0; z-index: 5;
+    pointer-events: none; overflow: hidden;
+  }
+  .thought {
+    position: absolute;
+    font-family: 'Noto Serif Sinhala', serif;
+    font-size: clamp(10px, 1.1vw, 13px);
+    font-weight: 300;
+    color: rgba(255,220,140,0.85);
+    text-align: center;
+    text-shadow: 0 0 12px rgba(255,200,80,0.5), 0 0 30px rgba(255,160,40,0.2);
+    animation: thoughtFloat linear forwards;
+    pointer-events: none;
+    line-height: 1.7;
+    padding: 6px 12px; border-radius: 4px;
+  }
+  .thought-name { display:block; font-size:0.8em; color:rgba(200,170,100,0.6); margin-top:3px; }
+  @keyframes thoughtFloat {
+    0%  { opacity:0; transform:translateY(0) scale(0.9); }
+    8%  { opacity:1; transform:translateY(-6vh) scale(1); }
+    85% { opacity:0.7; transform:translateY(-70vh) scale(0.97); }
+    100%{ opacity:0; transform:translateY(-82vh) scale(0.93); }
+  }
+
+  /* ── CHANGE 03: lamp-click thought float (from lamp position, fixed) ── */
+  .thought-lamp {
+    position: fixed;
+    font-family: 'Noto Serif Sinhala', serif;
+    font-size: clamp(10px, 1.2vw, 14px);
+    font-weight: 300;
+    color: rgba(255,235,160,0.95);
+    text-align: center;
+    text-shadow: 0 0 14px rgba(255,200,80,0.7), 0 0 35px rgba(255,160,40,0.3);
+    pointer-events: none;
+    line-height: 1.75;
+    padding: 8px 14px;
+    border-radius: 6px;
+    background: rgba(10, 18, 40, 0.45);
+    border: 1px solid rgba(255,200,80,0.12);
+    backdrop-filter: blur(2px);
+    animation: lampThoughtFloat linear forwards;
+    z-index: 10;
+    max-width: min(220px, 60vw);
+    word-break: break-word;
+    white-space: normal;
+  }
+  .thought-lamp .thought-name { display:block; font-size:0.78em; color:rgba(200,170,100,0.55); margin-top:4px; }
+  @keyframes lampThoughtFloat {
+    0%   { opacity:0;   transform: translateY(0)     scale(0.88); }
+    10%  { opacity:1;   transform: translateY(-20px)  scale(1);    }
+    80%  { opacity:0.8; transform: translateY(-160px) scale(0.97); }
+    100% { opacity:0;   transform: translateY(-200px) scale(0.93); }
+  }
+
+  /* ── CURSOR ── */
+  #cursor {
+    position: fixed; z-index: 9999;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,240,160,0.9) 0%, rgba(255,180,60,0.4) 50%, transparent 80%);
+    pointer-events: none; transform: translate(-50%,-50%);
+    mix-blend-mode: screen; filter: blur(0.5px);
+  }
+
+  /* ── RIPPLE / BURST ── */
+  .ripple {
+    position: fixed; z-index: 9997; pointer-events: none;
+    border-radius: 50%;
+    border: 1px solid rgba(255,220,120,0.4);
+    transform: translate(-50%,-50%) scale(0);
+    animation: rippleOut 1.2s ease-out forwards;
+  }
+  @keyframes rippleOut {
+    0%  { transform:translate(-50%,-50%) scale(0); opacity:0.7; }
+    100%{ transform:translate(-50%,-50%) scale(4); opacity:0; }
+  }
+  .lightburst {
+    position: fixed; z-index: 9996; pointer-events: none;
+    border-radius: 50%; width:6px; height:6px;
+    background: radial-gradient(circle, rgba(255,240,180,0.95), transparent 70%);
+    transform: translate(-50%,-50%);
+    animation: burstAnim 0.7s ease-out forwards; mix-blend-mode: screen;
+  }
+  @keyframes burstAnim {
+    0%  { width:6px;  height:6px;   opacity:1; }
+    100%{ width:140px;height:140px; opacity:0; }
+  }
+
+  /* ── BOTTOM UI BAR ── */
+  #lamp-count {
+    position: fixed; bottom: 18px; left: 22px; z-index: 100;
+    background: rgba(255,200,80,0.07);
+    border: 1px solid rgba(255,200,80,0.2);
+    color: rgba(220,190,120,0.7);
+    font-family: 'Noto Serif Sinhala', serif;
+    font-size: clamp(9px, 1vw, 11px);
+    padding: 6px 14px; border-radius: 20px;
+    pointer-events: none; letter-spacing: 0.05em;
+  }
+  #add-btn {
+    position: fixed; bottom: 18px; left: 50%;
+    transform: translateX(-50%); z-index: 100;
+    background: rgba(255,200,80,0.07);
+    border: 1px solid rgba(255,200,80,0.25);
+    color: rgba(220,190,120,0.8);
+    font-family: 'Noto Serif Sinhala', serif;
+    font-size: clamp(10px, 1.1vw, 13px);
+    padding: 9px 22px; border-radius: 30px; cursor: pointer;
+    transition: all 0.35s; letter-spacing: 0.05em;
+    white-space: nowrap; max-width: calc(100vw - 160px);
+    touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+  }
+  #add-btn:hover { background:rgba(255,200,80,0.15); color:#ffd090; box-shadow:0 0 20px rgba(255,180,60,0.2); }
+
+  #sound-btn {
+    position: fixed; bottom: 18px; right: 22px; z-index: 100;
+    background: rgba(255,220,100,0.08);
+    border: 1px solid rgba(255,200,80,0.2);
+    color: rgba(200,170,100,0.7);
+    font-size: 18px; padding: 8px 12px; border-radius: 50%; cursor: pointer;
+    transition: all 0.3s;
+    display: none;
+    touch-action: manipulation;
+  }
+  #sound-btn.show { display: block; }
+  #sound-btn:hover { background:rgba(255,220,100,0.18); color:#ffd080; transform:scale(1.1); }
+
+  @media (max-width: 500px) {
+    #add-btn  { font-size:11px; padding:8px 16px; max-width:calc(100vw - 130px); }
+    #lamp-count { left:12px; bottom:14px; }
+    #sound-btn  { right:12px; bottom:14px; }
+  }
+
+  /* ── CHANGE 01: "CLOSED" OVERLAY (replaces modal for lamp entry) ── */
+  #closed-overlay {
+    position: fixed; inset: 0; z-index: 200;
+    background: rgba(2,5,16,0.88); backdrop-filter: blur(6px);
+    display: none; align-items: center; justify-content: center; padding: 16px;
+  }
+  #closed-overlay.open { display: flex; }
+  #closed-box {
+    background: linear-gradient(160deg, rgba(15,25,50,0.97), rgba(8,15,35,0.99));
+    border: 1px solid rgba(255,200,80,0.18); border-radius: 18px;
+    padding: 36px 38px; width: 100%; max-width: 460px;
+    box-shadow: 0 0 70px rgba(255,180,60,0.07); text-align: center;
+  }
+  #closed-box .closed-moon {
+    font-size: 38px; display:block; margin-bottom: 18px;
+    animation: moonBreathe 6s ease-in-out infinite;
+    filter: drop-shadow(0 0 12px rgba(255,220,100,0.4));
+  }
+  #closed-box p {
+    font-family: 'Noto Serif Sinhala', serif;
+    font-size: clamp(12px, 2vw, 15px);
+    font-weight: 300;
+    color: rgba(240, 215, 160, 0.88);
+    line-height: 2.0;
+    letter-spacing: 0.04em;
+    text-shadow: 0 0 18px rgba(255,200,80,0.2);
+    margin-bottom: 26px;
+  }
+  #closed-dismiss {
+    font-family: 'Noto Serif Sinhala', serif;
+    font-size: clamp(11px, 1.4vw, 13px);
+    font-weight: 300;
+    color: rgba(200,170,100,0.7);
+    background: transparent;
+    border: 1px solid rgba(255,200,80,0.2);
+    border-radius: 30px;
+    padding: 8px 28px; cursor: pointer;
+    transition: all 0.3s; letter-spacing: 0.08em;
+    touch-action: manipulation;
+  }
+  #closed-dismiss:hover { background:rgba(255,200,80,0.1); color:#ffd090; }
+
+  /* ── MODAL (kept intact, just not opened anymore — CHANGE 01) ── */
+  #modal-overlay {
+    position: fixed; inset: 0; z-index: 200;
+    background: rgba(2,5,16,0.88); backdrop-filter: blur(6px);
+    display: none; align-items: center; justify-content: center; padding: 16px;
+  }
+  #modal-overlay.open { display: flex; }
+  #modal {
+    background: linear-gradient(160deg, rgba(15,25,50,0.95), rgba(8,15,35,0.98));
+    border: 1px solid rgba(255,200,80,0.2); border-radius: 16px;
+    padding: 32px 36px; width: 100%; max-width: 420px;
+    box-shadow: 0 0 60px rgba(255,180,60,0.08); text-align: center;
+  }
+  #modal h2 {
+    font-family: 'Noto Serif Sinhala', serif; font-weight:300; font-size:18px;
+    color:#f5e0a0; margin-bottom:20px; text-shadow:0 0 20px rgba(255,200,80,0.3);
+  }
+  #modal input, #modal textarea {
+    width:100%; background:rgba(255,255,255,0.04);
+    border:1px solid rgba(255,200,80,0.2); border-radius:8px;
+    color:#f0dfa0; font-family:'Noto Serif Sinhala',serif; font-size:13px;
+    padding:10px 14px; margin-bottom:14px; outline:none;
+    transition:border-color 0.3s; resize:none;
+  }
+  #modal input::placeholder, #modal textarea::placeholder { color:rgba(200,170,100,0.35); }
+  #modal input:focus, #modal textarea:focus { border-color:rgba(255,200,80,0.5); }
+  #char-counter { text-align:right; font-size:11px; color:rgba(200,170,100,0.45); margin-top:-10px; margin-bottom:10px; }
+  #char-counter.warn { color:rgba(255,150,80,0.7); }
+  .modal-btns { display:flex; gap:12px; justify-content:center; margin-top:6px; }
+  .modal-btns button {
+    background:rgba(255,200,80,0.1); border:1px solid rgba(255,200,80,0.3);
+    color:#f0d880; font-family:'Noto Serif Sinhala',serif;
+    font-size:13px; padding:9px 24px; border-radius:8px; cursor:pointer; transition:all 0.25s;
+    touch-action: manipulation;
+  }
+  .modal-btns button:hover { background:rgba(255,200,80,0.22); }
+  .modal-btns button.cancel { background:transparent; border-color:rgba(150,130,100,0.25); color:rgba(180,160,110,0.6); }
+
+  /* ── DB STATUS ── */
+  #db-status {
+    position: fixed; top: 12px; right: 14px; z-index: 300;
+    font-family: 'Noto Serif Sinhala', serif; font-size:10px;
+    color:rgba(180,160,100,0.4); pointer-events:none; letter-spacing:0.05em;
+  }
+
+  /* ── SCROLL HINT ── */
+  #scroll-hint {
+    position: fixed; bottom: 60px; left: 50%;
+    transform: translateX(-50%); z-index: 99;
+    display: none; flex-direction: column; align-items: center; gap: 4px;
+    pointer-events: none; animation: hintPulse 2s ease-in-out infinite;
+  }
+  #scroll-hint.visible { display: flex; }
+  #scroll-hint span { font-family:'Noto Serif Sinhala',serif; font-size:10px; color:rgba(200,170,100,0.45); letter-spacing:0.1em; }
+  #scroll-hint svg { opacity:0.35; }
+  @keyframes hintPulse {
+    0%,100%{ opacity:0.4; transform:translateX(-50%) translateY(0); }
+    50%    { opacity:0.8; transform:translateX(-50%) translateY(4px); }
+  }
+
+  /* ── CHANGE 02: category legend (small, top-left area) ── */
+  #cat-legend {
+    position: fixed; top: 12px; left: 14px; z-index: 300;
+    display: flex; flex-direction: column; gap: 4px;
+    pointer-events: none;
+  }
+  .cat-item {
+    font-family: 'Noto Serif Sinhala', serif; font-size: 9px;
+    color: rgba(180,155,95,0.38); letter-spacing: 0.06em;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .cat-dot { width:7px; height:7px; border-radius:50%; display:inline-block; }
+</style>
+</head>
+<body>
+
+<!-- ── CANVASES ─────────────────────────────────────── -->
+<canvas id="bg"></canvas>
+<canvas id="particles"></canvas>
+<canvas id="fireflies"></canvas>
+
+<!-- ── SPLASH SCREEN ────────────────────────────────── -->
+<div id="splash">
+  <div id="splash-moon"></div>
+  <div id="splash-msg">ආලෝකය ඇත්තේ ඔබ තුළමය</div>
+  <div id="splash-sub">සුභ වෙසක් මංගල්‍යයක් වේවා!</div>
+  <div id="splash-btn-wrap">
+    <button id="splash-btn">🪔 &nbsp; ඇතුළු වන්න</button>
+  </div>
+</div>
+
+<!-- ── MAIN SCENE ── -->
+<div id="scene">
+  <div id="moon-wrap"><div id="main-moon"></div></div>
+  <div id="main-text">උතුම් ප්‍රතිපත්ති පූජාවෙන් - සිත් පහන් දල්වමු</div>
+  <!-- CHANGE 04: original sub-text line preserved, new line added below -->
+  <div id="sub-text">සුභ වෙසක් මංගල්‍යයක් වේවා!</div>
+  <div id="sub-text-2">ඊලග වෙසක් දවසට ආයෙත් පහන් දල්වමු. එතෙක් මේ දැල්වූ පහන් සේ සියල්ලන්ගේ සිත් නිවී පහන් වේවා</div>
+</div>
+
+<div id="lantern-scroll-area">
+  <canvas id="lanterns"></canvas>
+</div>
+
+<div id="thoughts-layer"></div>
+<div id="cursor"></div>
+
+<div id="scroll-hint">
+  <span>පහත බලන්න ↓</span>
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+    <path d="M8 2v12M3 9l5 5 5-5" stroke="rgba(200,170,100,0.7)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+</div>
+
+<div id="db-status">⬤ connecting...</div>
+<div id="lamp-count">🪔 0 පහන්</div>
+
+<!-- CHANGE 02: category legend -->
+<div id="cat-legend">
+  <div class="cat-item"><span class="cat-dot" style="background:rgba(255,190,70,0.7)"></span>ප්‍රාර්ථනා</div>
+  <div class="cat-item"><span class="cat-dot" style="background:rgba(160,210,255,0.7)"></span>ගැඹුරු සිතුවිලි</div>
+  <div class="cat-item"><span class="cat-dot" style="background:rgba(200,200,200,0.4)"></span>නිහඬ</div>
+</div>
+
+<button id="add-btn">+ ඔයත් පහනක් දල්වන්න</button>
+
+<button id="sound-btn" title="sound">🔔</button>
+
+<!-- CHANGE 01: "Closed" overlay — shown when add-btn is clicked -->
+<div id="closed-overlay">
+  <div id="closed-box">
+    <span class="closed-moon">🌕</span>
+    <p>
+      සියල්ල අනිත්‍යය. වෙසක් දිනයද එසේමය.<br>
+      නමුත් විශ්වයේ ස්වභාවයනම් පසුගිය සිදුවීම් නැවත නැවතත්<br>
+      වෙනස් ස්වරූපයකින් අනේකවාරයක් සිදුවීමය.<br><br>
+      පැමිනීමට නියමිත වෙස්වලාගත් සිදුවීම් පසුගිය දිනක සිදු වූ<br>
+      ඒ්ව බව පසක් කරගැනීමට තරම් සියල්ලෝම<br>
+      විශ්වීය රටාවේ ප්‍රවීණයෝ වෙත්වා...🙏 🙏<br><br>
+      ඊලග වෙසක් දිනය තෙක් මේ පහන් එලෙසම තියේවි.<br>
+      එදාට අළුත් පහනක් දල්වමු 😊🙏
+    </p>
+    <button id="closed-dismiss">🙏 &nbsp; හරි</button>
+  </div>
+</div>
+
+<!-- ── MODAL (kept intact, not opened — CHANGE 01) ── -->
+<div id="modal-overlay">
+  <div id="modal">
+    <h2>🪔 ඔයත් පහනක් දල්වන්න</h2>
+    <input id="m-name" type="text" placeholder="ඔයාගේ නම..." maxlength="30">
+    <textarea id="m-thought" rows="3" placeholder="සිතුවිල්ලක් ලියන්න... (අකුරු 50ට වැඩිය එපා)"></textarea>
+    <div id="char-counter">0 / 50</div>
+    <div class="modal-btns">
+      <button id="m-cancel" class="cancel">එපා</button>
+      <button id="m-confirm">දල්වන්න 🔥</button>
+    </div>
+  </div>
+</div>
+
+<audio id="bg-audio" loop preload="auto">
+  <source src="song.mp3" type="audio/mpeg">
+</audio>
+
+<!-- CHANGE 03: bell audio element -->
+<audio id="bell-audio" preload="auto">
+  <source src="bell.mp3" type="audio/mpeg">
+</audio>
+
+<script>
+// ─── CONFIG ───────────────────────────────────────────────────
+const SHEET_URL = 'https://script.google.com/macros/s/AKfycby1xnBaNA15LaMLmrlOpPPry3mVQVl_Stug7ETyoZoC5CwVtuVBbUw6-8UytXxMxsDv/exec';
+
+// ─── GLOBALS ──────────────────────────────────────────────────
+const W  = () => window.innerWidth;
+const VH = () => window.innerHeight;
+let mx = W()/2, my = VH()/2;
+let lanterns = [], fireflies = [], particles = [];
+let THOUGHTS = [], thoughtIdx = 0, scrollY = 0;
+let sceneUnlocked = false;
+
+const bgC = document.getElementById('bg');       const bgX = bgC.getContext('2d');
+const fcC = document.getElementById('fireflies');const fcX = fcC.getContext('2d');
+const ptC = document.getElementById('particles');const ptX = ptC.getContext('2d');
+const lnC = document.getElementById('lanterns'); const lnX = lnC.getContext('2d');
+const bgAudio   = document.getElementById('bg-audio');
+const bellAudio = document.getElementById('bell-audio'); // CHANGE 03
+
+// ─── AUDIO ────────────────────────────────────────────────────
+let audioUnlocked = false;
+let audioPlaying  = false;
+
+function unlockAudio(){
+  if(audioUnlocked) return;
+  audioUnlocked = true;
+  bgAudio.volume = 1;
+  const p = bgAudio.play();
+  if(p !== undefined){
+    p.then(() => { bgAudio.pause(); bgAudio.currentTime = 0; }).catch(() => {});
+  }
+}
+
+function playAudio(){
+  if(audioPlaying) return;
+  audioPlaying = true;
+  bgAudio.volume = 1;
+  bgAudio.currentTime = 0;
+  const p = bgAudio.play();
+  if(p !== undefined){
+    p.catch(() => { document.getElementById('sound-btn').classList.add('show'); });
+  }
+}
+
+document.getElementById('sound-btn').addEventListener('click', () => {
+  bgAudio.volume = 1;
+  bgAudio.play().catch(()=>{});
+});
+
+// ─── CHANGE 03: Bell sound per lamp click ─────────────────────
+// Per-lamp cooldown: lamp stores _lastBell timestamp
+function playBell(){
+  // Clone the audio so overlapping is naturally prevented but one clean play happens
+  bellAudio.currentTime = 0;
+  bellAudio.play().catch(()=>{});
+}
+
+// ─── SPLASH → MAIN TRANSITION ─────────────────────────────────
+const splashBtn = document.getElementById('splash-btn');
+
+splashBtn.addEventListener('touchstart', (e) => {
+  unlockAudio();
+}, { passive: true });
+
+function onSplashTap(e){
+  splashBtn.removeEventListener('touchend', onSplashTap);
+  splashBtn.removeEventListener('click',    onSplashTap);
+  playAudio();
+  dismissSplash();
+}
+splashBtn.addEventListener('touchend', onSplashTap, { passive: true });
+splashBtn.addEventListener('click',    onSplashTap);
+
+function dismissSplash(){
+  sceneUnlocked = true;
+  const splash = document.getElementById('splash');
+  splash.classList.add('fading');
+  setTimeout(() => {
+    splash.remove();
+    document.getElementById('scene').classList.add('visible');
+  }, 1450);
+}
+
+// ─── RESIZE ───────────────────────────────────────────────────
+function resize(){
+  bgC.width  = W(); bgC.height  = VH();
+  fcC.width  = W(); fcC.height  = VH();
+  ptC.width  = W(); ptC.height  = VH();
+  buildBackground();
+  resizeLanternCanvas();
+  repositionLanterns();
+  lanterns.forEach(lx => { lx._staticCache = null; });
+}
+window.addEventListener('resize', resize);
+
+// ─── BACKGROUND ───────────────────────────────────────────────
+function buildBackground(){
+  const g = bgX.createRadialGradient(W()*0.5, VH()*0.15, 0, W()*0.5, VH()*0.15, VH()*1.1);
+  g.addColorStop(0,    '#0d1e3a');
+  g.addColorStop(0.3,  '#070f22');
+  g.addColorStop(0.65, '#040a18');
+  g.addColorStop(1,    '#020510');
+  bgX.fillStyle = g; bgX.fillRect(0,0,W(),VH());
+  for(let i=0;i<320;i++){
+    const x = Math.random()*W(), y = Math.random()*VH()*0.75;
+    const r = Math.random();
+    const size  = r<0.7 ? 0.5 : r<0.92 ? 1 : 1.6;
+    const alpha = 0.15 + Math.random()*0.55;
+    bgX.beginPath(); bgX.arc(x,y,size,0,Math.PI*2);
+    bgX.fillStyle = `rgba(220,210,180,${alpha})`; bgX.fill();
+  }
+}
+
+// ─── LAMP GRID ────────────────────────────────────────────────
+function getLampSize(){
+  const w = W();
+  if(w >= 1200) return { lampW:150, lampH:145 };
+  if(w >= 900)  return { lampW:130, lampH:130 };
+  if(w >= 600)  return { lampW:115, lampH:120 };
+  return               { lampW:95,  lampH:110 };
+}
+function getLanternAreaHeight(){
+  const { lampW, lampH } = getLampSize();
+  const cols = Math.max(1, Math.floor(W() / lampW));
+  const rows = Math.ceil(Math.max(lanterns.length, 1) / cols);
+  return Math.max(VH() * 1.1, VH()*0.42 + rows*lampH + 200);
+}
+function resizeLanternCanvas(){
+  const h = getLanternAreaHeight();
+  lnC.width = W(); lnC.height = h;
+  lnC.style.width = W()+'px'; lnC.style.height = h+'px';
+  document.getElementById('lantern-scroll-area').style.height = h+'px';
+  document.body.style.minHeight = h+'px';
+}
+function repositionLanterns(){
+  if(!lanterns.length) return;
+  const { lampW, lampH } = getLampSize();
+  const topOffset = VH()*0.42;
+  const cols  = Math.max(1, Math.floor(W()/lampW));
+  const total = lanterns.length;
+  lanterns.forEach((lx, i) => {
+    const revIdx = (total-1) - i;
+    const row = Math.floor(revIdx/cols);
+    const col = revIdx % cols;
+    const firstInRow = row*cols;
+    const rowCount   = Math.min(firstInRow+cols, total) - firstInRow;
+    const startX  = (W() - rowCount*lampW)/2 + lampW/2;
+    lx._targetX = startX + col*lampW;
+    lx._targetY = topOffset + row*lampH + lampH/2;
+    if(!lx._positioned){ lx.x = lx._targetX; lx.y = lx._targetY; lx._positioned = true; }
+  });
+  resizeLanternCanvas();
+  updateLanternStates();
+  const hint = document.getElementById('scroll-hint');
+  if(getLanternAreaHeight() > VH()*1.05 && lanterns.length > 0){
+    hint.classList.add('visible');
+    setTimeout(() => hint.classList.remove('visible'), 6000);
+  }
+}
+
+// ─── CHANGE 02: Category colour helpers ───────────────────────
+// category: 1 = empty/silent, 2 = Wesak wishes, 3 = deep thought
+// Returns { bodyTint, glowR, glowG, glowB } used in drawLantern
+function getCatStyle(category){
+  switch(parseInt(category)||1){
+    case 2: // Wesak wishes — warm amber (original palette, slightly richer)
+      return { glowR:255, glowG:180, glowB:55,  bodyTint:'#c89040', innerBright:1.0 };
+    case 3: // Deep thought — cool blue-violet glow, darker body
+      return { glowR:130, glowG:175, glowB:255, bodyTint:'#4a6aaa', innerBright:0.85 };
+    case 1: // Silent / empty — dim, desaturated
+    default:
+      return { glowR:190, glowG:180, glowB:155, bodyTint:'#7a7060', innerBright:0.55 };
+  }
+}
+
+// ─── LANTERN FACTORY ──────────────────────────────────────────
+// CHANGE 02: added `category` param
+function makeLantern(x, y, name=null, lit=true, thought=null, id=null, category=1){
+  const base = W()>=1200?1.1 : W()>=900?0.95 : W()>=600?0.85 : 0.72;
+  return {
+    x, y, _targetX:x, _targetY:y, _positioned:false,
+    name, lit, thought, id,
+    category: parseInt(category)||1,        // CHANGE 02
+    scale: base + Math.random()*0.25,
+    swayPhase: Math.random()*Math.PI*2, swaySpeed: 0.3+Math.random()*0.5,
+    flamePhase:Math.random()*Math.PI*2, flameSpeed:1.5+Math.random()*2.5,
+    glowPulse: Math.random()*Math.PI*2, glowSpeed: 0.4+Math.random()*0.6,
+    brightness:0.6+Math.random()*0.4,
+    windEffect:0, hover:false, clickBounce:0,
+    hue:-15+Math.random()*30, state:'active', wakeFlicker:0, _staticCache:null,
+    _lastBell: 0,                            // CHANGE 03: cooldown tracker
+  };
+}
+
+// ─── DRAW LANTERN (CHANGE 02: category-aware colours) ─────────
+function drawLantern(lx, ctx, t, mouseDist){
+  if(lx._targetX !== undefined){
+    lx.x += (lx._targetX - lx.x)*0.05;
+    lx.y += (lx._targetY - lx.y)*0.05;
+  }
+  const s  = lx.scale;
+  const sw = Math.sin(lx.swayPhase + t*lx.swaySpeed)*3 + lx.windEffect*8;
+  const fp = lx.flamePhase + t*lx.flameSpeed;
+  const gp = lx.glowPulse  + t*lx.glowSpeed;
+  const bounce = lx.clickBounce>0 ? Math.sin(lx.clickBounce*Math.PI)*8 : 0;
+  lx.clickBounce = Math.max(0, lx.clickBounce-0.04);
+
+  // CHANGE 02: get category style
+  const cs = getCatStyle(lx.category);
+
+  ctx.save();
+  ctx.translate(lx.x+sw, lx.y-bounce);
+  ctx.scale(s, s);
+  const proximity  = Math.max(0, 1-mouseDist/160);
+  const glowExtra  = proximity*0.5;
+  const bright     = lx.brightness*(0.85+Math.sin(gp)*0.15) * cs.innerBright;
+
+  if(lx.lit){
+    const hr = 55+glowExtra*30+Math.sin(gp)*5;
+    const h  = ctx.createRadialGradient(0,-10,0,0,-10,hr);
+    // CHANGE 02: use category glow colour
+    h.addColorStop(0,   `rgba(${cs.glowR},${cs.glowG},${cs.glowB},${0.13*bright+glowExtra*0.08})`);
+    h.addColorStop(0.4, `rgba(${cs.glowR},${Math.max(0,cs.glowG-30)},${Math.max(0,cs.glowB-20)},${0.07*bright})`);
+    h.addColorStop(1,   'rgba(0,0,0,0)');
+    ctx.fillStyle=h; ctx.beginPath(); ctx.ellipse(0,-10,hr,hr*0.75,0,0,Math.PI*2); ctx.fill();
+  }
+
+  const bodyH=38, bodyW=22;
+  ctx.beginPath();
+  ctx.moveTo(-10,-bodyH/2-8); ctx.lineTo(10,-bodyH/2-8);
+  ctx.lineTo(7,-bodyH/2-1);   ctx.lineTo(-7,-bodyH/2-1);
+  ctx.closePath(); ctx.fillStyle='#8a6030'; ctx.fill();
+  ctx.beginPath(); ctx.moveTo(0,-bodyH/2-12); ctx.lineTo(0,-bodyH/2-20);
+  ctx.strokeStyle='rgba(140,100,50,0.7)'; ctx.lineWidth=1.2; ctx.stroke();
+
+  if(lx.lit){
+    const ig=ctx.createRadialGradient(0,0,0,0,0,bodyW*0.8);
+    ig.addColorStop(0,   `rgba(${cs.glowR},${cs.glowG+20},${cs.glowB+60},${0.7*bright})`);
+    ig.addColorStop(0.5, `rgba(${cs.glowR},${cs.glowG},${Math.max(0,cs.glowB-20)},${0.4*bright})`);
+    ig.addColorStop(1,   `rgba(${Math.min(255,cs.glowR-50)},${Math.max(0,cs.glowG-80)},20,${0.15*bright})`);
+    ctx.fillStyle=ig; ctx.beginPath(); ctx.ellipse(0,0,bodyW*0.75,bodyH*0.45,0,0,Math.PI*2); ctx.fill();
+  }
+
+  const bg2=ctx.createLinearGradient(-bodyW,0,bodyW,0);
+  bg2.addColorStop(0,'#6a4820'); bg2.addColorStop(0.25,'#c8a060');
+  bg2.addColorStop(0.75,'#b89050'); bg2.addColorStop(1,'#5a3a18');
+  ctx.beginPath(); ctx.roundRect(-bodyW,-bodyH/2,bodyW*2,bodyH,[6,6,8,8]);
+  ctx.fillStyle=bg2; ctx.globalAlpha=0.55; ctx.fill(); ctx.globalAlpha=1;
+  ctx.strokeStyle='#c8a060'; ctx.lineWidth=1.2; ctx.stroke();
+  ctx.strokeStyle='rgba(160,120,60,0.5)'; ctx.lineWidth=0.7;
+  for(let r=-1;r<=1;r++){ ctx.beginPath(); ctx.moveTo(r*8,-bodyH/2); ctx.lineTo(r*8,bodyH/2); ctx.stroke(); }
+  ctx.beginPath(); ctx.moveTo(-bodyW,0); ctx.lineTo(bodyW,0); ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(-8,bodyH/2); ctx.lineTo(8,bodyH/2); ctx.lineTo(6,bodyH/2+7); ctx.lineTo(-6,bodyH/2+7);
+  ctx.closePath(); ctx.fillStyle='#7a5228'; ctx.fill();
+
+  if(lx.lit){
+    // CHANGE 02: flame colour tinted by category
+    const fx=Math.sin(fp)*3, fy=Math.cos(fp*0.7)*2;
+    const fh=14+Math.sin(fp*1.3)*3;
+    const fl=ctx.createRadialGradient(fx,-bodyH/2-4+fy,0,fx,-bodyH/2-4+fy,fh);
+    if(lx.category===3){
+      // deep thought: blue-white flame
+      fl.addColorStop(0,'rgba(200,220,255,0.98)');
+      fl.addColorStop(0.3,'rgba(100,140,255,0.75)');
+      fl.addColorStop(0.7,'rgba(60,80,200,0.35)');
+    } else if(lx.category===1){
+      // silent: faint pale flame
+      fl.addColorStop(0,'rgba(220,215,200,0.75)');
+      fl.addColorStop(0.3,'rgba(180,160,120,0.5)');
+      fl.addColorStop(0.7,'rgba(120,100,60,0.2)');
+    } else {
+      // wishes: original warm flame
+      fl.addColorStop(0,'rgba(255,240,180,0.95)');
+      fl.addColorStop(0.3,'rgba(255,160,40,0.75)');
+      fl.addColorStop(0.7,'rgba(255,80,10,0.35)');
+    }
+    fl.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=fl; ctx.beginPath();
+    ctx.ellipse(fx,-bodyH/2-4+fy,fh*0.35,fh*0.6,Math.sin(fp)*0.15,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(fx,-bodyH/2-4+fy,fh*0.12,fh*0.22,0,0,Math.PI*2);
+    ctx.fillStyle='rgba(255,255,220,0.98)'; ctx.fill();
+  } else {
+    ctx.beginPath(); ctx.arc(0,-bodyH/2-3,2,0,Math.PI*2);
+    ctx.fillStyle='rgba(80,60,40,0.6)'; ctx.fill();
+  }
+
+  if(lx.name && lx.lit){
+    ctx.font=`${Math.max(9,10/s)}px 'Noto Serif Sinhala',serif`;
+    ctx.textAlign='center';
+    // CHANGE 02: name label colour tinted by category
+    const nl = lx.category===3 ? `rgba(190,210,255,${0.55+glowExtra*0.3})`
+              : lx.category===1 ? `rgba(200,195,175,${0.4+glowExtra*0.2})`
+              :                   `rgba(255,230,160,${0.55+glowExtra*0.3})`;
+    ctx.fillStyle=nl;
+    ctx.shadowColor= lx.category===3 ? 'rgba(130,175,255,0.4)' : 'rgba(255,180,60,0.4)';
+    ctx.shadowBlur=6;
+    ctx.fillText(lx.name, 0, bodyH/2+22); ctx.shadowBlur=0;
+  }
+  ctx.restore();
+}
+
+// ─── FIREFLIES ────────────────────────────────────────────────
+function spawnFireflies(){
+  for(let i=0;i<65;i++) fireflies.push({
+    x:Math.random()*W(), y:Math.random()*VH()*0.8,
+    phase:Math.random()*Math.PI*2, speed:0.15+Math.random()*0.35,
+    radius:1.2+Math.random()*1.4, alpha:0, targetAlpha:Math.random()*0.7+0.1,
+    blinkPhase:Math.random()*Math.PI*2, blinkSpeed:0.4+Math.random()*1.2,
+    dx:(Math.random()-0.5)*0.4, dy:(Math.random()-0.5)*0.25-0.05,
+  });
+}
+function updateFireflies(t){
+  fcX.clearRect(0,0,W(),VH());
+  fireflies.forEach(f => {
+    f.x += f.dx+Math.sin(f.phase+t*f.speed)*0.4;
+    f.y += f.dy+Math.cos(f.phase+t*f.speed*0.7)*0.22;
+    f.phase += 0.008;
+    if(f.x<-10) f.x=W()+5; if(f.x>W()+10) f.x=-5;
+    if(f.y<-10) f.y=VH()*0.85; if(f.y>VH()*0.85) f.y=-5;
+    const blink=0.4+0.6*Math.pow((Math.sin(f.blinkPhase+t*f.blinkSpeed)+1)/2,2);
+    f.alpha += (f.targetAlpha*blink-f.alpha)*0.06;
+    if(Math.random()<0.002) f.targetAlpha=Math.random()*0.7+0.1;
+    const g=fcX.createRadialGradient(f.x,f.y,0,f.x,f.y,f.radius*4.5);
+    g.addColorStop(0,`rgba(180,255,140,${f.alpha})`);
+    g.addColorStop(0.4,`rgba(140,220,100,${f.alpha*0.5})`);
+    g.addColorStop(1,'rgba(0,0,0,0)');
+    fcX.fillStyle=g; fcX.beginPath(); fcX.arc(f.x,f.y,f.radius*4.5,0,Math.PI*2); fcX.fill();
+    fcX.beginPath(); fcX.arc(f.x,f.y,f.radius*0.6,0,Math.PI*2);
+    fcX.fillStyle=`rgba(220,255,200,${f.alpha*0.9})`; fcX.fill();
+  });
+}
+
+// ─── PARTICLES ────────────────────────────────────────────────
+function spawnParticle(x, y, type='fire'){
+  for(let i=0;i<(type==='fire'?8:5);i++){
+    const angle=Math.random()*Math.PI*2, speed=0.3+Math.random()*2.5;
+    particles.push({ x, y, vx:Math.cos(angle)*speed, vy:Math.sin(angle)*speed-1.5,
+      alpha:0.9, size:1.5+Math.random()*3, type, hue:-20+Math.random()*40 });
+  }
+}
+function updateParticles(){
+  ptX.clearRect(0,0,W(),VH());
+  particles = particles.filter(p=>p.alpha>0.02);
+  particles.forEach(p=>{
+    p.x+=p.vx; p.y+=p.vy; p.vy+=0.03; p.alpha*=0.94; p.size*=0.97;
+    if(p.type==='fire'){
+      ptX.beginPath(); ptX.arc(p.x,p.y,p.size,0,Math.PI*2);
+      ptX.fillStyle=`rgba(255,${160+p.hue},40,${p.alpha})`; ptX.fill();
+    } else {
+      ptX.beginPath(); ptX.arc(p.x,p.y,p.size*0.6,0,Math.PI*2);
+      ptX.fillStyle=`rgba(200,255,180,${p.alpha*0.6})`; ptX.fill();
+    }
+  });
+}
+
+// ─── THOUGHTS (random scheduler — UNCHANGED) ──────────────────
+function spawnThought(){
+  if(!THOUGHTS.length || !sceneUnlocked) return;
+  const layer=document.getElementById('thoughts-layer');
+  const t=THOUGHTS[thoughtIdx%THOUGHTS.length]; thoughtIdx++;
+  const el=document.createElement('div'); el.className='thought';
+  el.style.left=(W()*0.08+Math.random()*W()*0.78)+'px';
+  el.style.bottom='28%';
+  const dur=22+Math.random()*14;
+  el.style.animationDuration=dur+'s'; el.style.opacity='0';
+  el.innerHTML=t.text.replace(/\n/g,'<br>')+`<span class="thought-name">— ${t.name}</span>`;
+  layer.appendChild(el);
+  setTimeout(()=>el.remove(),(dur+1)*1000);
+}
+
+// ─── CHANGE 03: Lamp-click thought float (from lamp screen position) ──
+function spawnLampThought(lx){
+  if(!lx.thought || !lx.thought.trim()) return;
+  // Convert lamp canvas Y to screen Y (accounting for scroll)
+  const screenX = lx.x;
+  const screenY = lx.y - window.scrollY;
+  const el = document.createElement('div');
+  el.className = 'thought-lamp';
+  // Position centred on the lamp, starting just above it
+  el.style.left  = screenX + 'px';
+  el.style.top   = (screenY - 30) + 'px';
+  el.style.transform = 'translateX(-50%)';
+  const dur = 6 + Math.random()*2;
+  el.style.animationDuration = dur + 's';
+  el.innerHTML = lx.thought.replace(/\n/g,'<br>') +
+    (lx.name ? `<span class="thought-name">— ${lx.name}</span>` : '');
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), (dur+0.5)*1000);
+}
+
+// ─── VIEWPORT CULLING ─────────────────────────────────────────
+const VIEWPORT_BUFFER=220, STATIC_BUFFER=600;
+function updateLanternStates(){
+  const aT=scrollY-VIEWPORT_BUFFER, aB=scrollY+VH()+VIEWPORT_BUFFER;
+  const sT=scrollY-STATIC_BUFFER,   sB=scrollY+VH()+STATIC_BUFFER;
+  lanterns.forEach(lx=>{
+    const prev=lx.state;
+    if(lx.y<aT||lx.y>aB){ lx.state=(lx.y<sT||lx.y>sB)?'sleep':'static'; }
+    else lx.state='active';
+    if(prev!=='active'&&lx.state==='active') lx.wakeFlicker=1.0;
+  });
+}
+function drawStaticLamp(lx){
+  const size=Math.ceil(130*lx.scale);
+  const oc=document.createElement('canvas'); oc.width=size; oc.height=size;
+  const ox=oc.getContext('2d'); ox.translate(size/2,size/2-10);
+  drawLantern(lx,ox,2.5,9999); lx._staticCache=oc; lx._staticCacheSize=size;
+}
+
+// ─── MAIN LOOP ────────────────────────────────────────────────
+function loop(ts){
+  const t=ts*0.001;
+  const windForce=(mx/W()-0.5)*0.15;
+  const adjMY=my+scrollY;
+  lanterns.forEach(lx=>{
+    if(lx.state!=='active') return;
+    const d=Math.hypot(lx.x-mx,lx.y-adjMY);
+    lx.windEffect+=(windForce*Math.max(0,1-d/300)-lx.windEffect)*0.04;
+  });
+  lnX.clearRect(0,0,lnC.width,lnC.height);
+  lanterns.forEach(lx=>{
+    if(lx.state==='sleep') return;
+    if(lx.state==='static'){
+      if(!lx._staticCache) drawStaticLamp(lx);
+      const sz=lx._staticCacheSize;
+      lnX.globalAlpha=0.75; lnX.drawImage(lx._staticCache,lx.x-sz/2,lx.y-sz/2+10); lnX.globalAlpha=1;
+      return;
+    }
+    if(lx.wakeFlicker>0){ lx._staticCache=null; lx.wakeFlicker=Math.max(0,lx.wakeFlicker-0.04); }
+    drawLantern(lx,lnX,t,Math.hypot(lx.x-mx,lx.y-adjMY));
+  });
+  updateFireflies(t); updateParticles();
+  requestAnimationFrame(loop);
+}
+
+// ─── SCROLL ───────────────────────────────────────────────────
+let scrollTimer;
+window.addEventListener('scroll',()=>{
+  scrollY=window.scrollY; updateLanternStates();
+  clearTimeout(scrollTimer);
+  scrollTimer=setTimeout(()=>{ lanterns.forEach(lx=>{ if(lx.state==='static') lx._staticCache=null; }); },150);
+},{passive:true});
+
+// ─── CURSOR ───────────────────────────────────────────────────
+const cursor=document.getElementById('cursor');
+document.addEventListener('mousemove',e=>{ mx=e.clientX; my=e.clientY; cursor.style.left=mx+'px'; cursor.style.top=my+'px'; });
+
+// ─── INTERACTIONS ─────────────────────────────────────────────
+function createRipple(x,y){
+  const r=document.createElement('div'); r.className='ripple';
+  r.style.left=x+'px'; r.style.top=y+'px'; r.style.width='60px'; r.style.height='60px';
+  document.body.appendChild(r); setTimeout(()=>r.remove(),1300);
+}
+function createBurst(x,y){
+  const b=document.createElement('div'); b.className='lightburst';
+  b.style.left=x+'px'; b.style.top=y+'px';
+  document.body.appendChild(b); setTimeout(()=>b.remove(),750);
+}
+
+document.addEventListener('click',e=>{
+  if(!sceneUnlocked) return;
+  if(e.target.closest('#modal-overlay')||e.target.closest('#add-btn')||
+     e.target.closest('#sound-btn')||e.target.closest('#closed-overlay')) return;
+  createRipple(e.clientX,e.clientY); createBurst(e.clientX,e.clientY);
+  spawnParticle(e.clientX,e.clientY,'fire');
+
+  const cY=e.clientY+window.scrollY;
+  lanterns.forEach(lx=>{
+    const d=Math.hypot(lx.x-e.clientX,lx.y-cY);
+    if(d<36*lx.scale){
+      lx.clickBounce=1;
+      if(!lx.lit){ lx.lit=true; spawnParticle(lx.x,lx.y-20*lx.scale,'fire'); }
+
+      // ── CHANGE 03: bell + lamp thought on click ──────────────
+      const now = Date.now();
+      if(now - lx._lastBell > 2000){   // 2-second per-lamp cooldown
+        lx._lastBell = now;
+        playBell();
+        spawnLampThought(lx);
+      }
+    }
+  });
+});
+
+document.getElementById('main-moon').addEventListener('click',e=>{
+  if(!sceneUnlocked) return;
+  e.stopPropagation();
+  for(let i=0;i<4;i++) setTimeout(()=>spawnParticle(W()/2,VH()*0.12,'fly'),i*80);
+  createBurst(W()/2,VH()*0.12); spawnThought();
+});
+
+document.addEventListener('touchstart',e=>{
+  if(!sceneUnlocked) return;
+  const touch=e.touches[0]; mx=touch.clientX; my=touch.clientY;
+  createRipple(touch.clientX,touch.clientY); createBurst(touch.clientX,touch.clientY);
+  spawnParticle(touch.clientX,touch.clientY,'fire');
+},{passive:true});
+document.addEventListener('touchmove',e=>{ const touch=e.touches[0]; mx=touch.clientX; my=touch.clientY; },{passive:true});
+
+// ─── CHANGE 01: Add-btn → show closed overlay (modal NOT opened) ──
+document.getElementById('add-btn').addEventListener('click',()=>{
+  document.getElementById('closed-overlay').classList.add('open');
+  // Original modal open call is commented out below:
+  // document.getElementById('modal-overlay').classList.add('open');
+});
+document.getElementById('closed-dismiss').addEventListener('click',()=>{
+  document.getElementById('closed-overlay').classList.remove('open');
+});
+// Close on overlay backdrop click
+document.getElementById('closed-overlay').addEventListener('click', e => {
+  if(e.target === document.getElementById('closed-overlay')){
+    document.getElementById('closed-overlay').classList.remove('open');
+  }
+});
+
+// ── Modal internal wiring kept intact (CHANGE 01 — just not reachable from UI) ──
+document.getElementById('m-cancel').addEventListener('click',()=>{
+  document.getElementById('modal-overlay').classList.remove('open');
+});
+document.getElementById('m-thought').addEventListener('input',function(){
+  const len=this.value.length;
+  const counter=document.getElementById('char-counter');
+  counter.textContent=`${len} / 50`; counter.classList.toggle('warn',len>=45);
+  if(len>50) this.value=this.value.slice(0,50);
+});
+document.getElementById('m-confirm').addEventListener('click',async()=>{
+  const name=document.getElementById('m-name').value.trim()||'ගෞරව';
+  let thought=document.getElementById('m-thought').value.trim();
+  if(thought.length>50) thought=thought.slice(0,50);
+  document.getElementById('modal-overlay').classList.remove('open');
+  document.getElementById('m-name').value='';
+  document.getElementById('m-thought').value='';
+  document.getElementById('char-counter').textContent='0 / 50';
+  const record=await saveToSheet({name,thought});
+  if(record){ addLanternFromRecord(record); updateLampCount(); }
+});
+
+// ─── LANTERN MANAGEMENT ───────────────────────────────────────
+// CHANGE 02: pass category through
+function addLanternFromRecord(record){
+  const lx=makeLantern(W()/2,VH()*0.4,record.name,true,record.thought,record.id,record.category||1);
+  lanterns.push(lx); repositionLanterns();
+  setTimeout(()=>{
+    if(lx._targetX&&lx._targetY){
+      spawnParticle(lx._targetX,lx._targetY-20,'fire');
+      createBurst(lx._targetX,Math.max(0,lx._targetY-window.scrollY-20));
+    }
+  },300);
+  if(record.thought) THOUGHTS.push({text:record.thought,name:record.name});
+}
+function addLanternLocal(name,thought,id,category){
+  const lx=makeLantern(0,0,name,true,thought,id,category||1);
+  lanterns.push(lx);
+  if(thought) THOUGHTS.push({text:thought,name});
+}
+function updateLampCount(){
+  document.getElementById('lamp-count').textContent=`🪔 ${lanterns.length} පහන්`;
+}
+
+// ─── GOOGLE SHEETS ────────────────────────────────────────────
+function setDbStatus(msg,ok=true){
+  const el=document.getElementById('db-status');
+  el.textContent=(ok?'⬤ ':'⚠ ')+msg;
+  el.style.color=ok?'rgba(180,220,120,0.4)':'rgba(220,150,80,0.5)';
+}
+function saveToSheet(data){
+  return new Promise(resolve=>{
+    const cb='wsSave_'+Date.now();
+    const sc=document.createElement('script');
+    const p=new URLSearchParams({action:'save',name:data.name||'',thought:data.thought||'',callback:cb});
+    sc.src=SHEET_URL+'?'+p.toString();
+    const t=setTimeout(()=>{ if(window[cb]){delete window[cb];sc.remove();resolve({id:'local_'+Date.now(),name:data.name,thought:data.thought});} },8000);
+    window[cb]=r=>{ clearTimeout(t);delete window[cb];sc.remove();resolve(r); };
+    sc.onerror=()=>{ clearTimeout(t);delete window[cb];sc.remove();resolve({id:'local_'+Date.now(),name:data.name,thought:data.thought}); };
+    document.head.appendChild(sc);
+  });
+}
+function loadFromSheet(){
+  setDbStatus('connecting...');
+  const cb='wsLoad_'+Date.now();
+  const sc=document.createElement('script');
+  sc.src=SHEET_URL+'?action=getAll&callback='+cb;
+  const t=setTimeout(()=>{ if(window[cb]){setDbStatus('offline — data loads when connected',false);delete window[cb];sc.remove();} },10000);
+  window[cb]=data=>{
+    clearTimeout(t); setDbStatus('connected');
+    lanterns=[]; THOUGHTS=[];
+    if(data.lamps&&Array.isArray(data.lamps)){
+      // CHANGE 02: pass category field from sheet
+      data.lamps.forEach(r=>addLanternLocal(r.name,r.thought,r.id,r.category));
+      repositionLanterns(); updateLampCount();
+    }
+    if(data.thoughts&&Array.isArray(data.thoughts)){
+      data.thoughts.forEach(t=>{ if(!THOUGHTS.find(x=>x.text===t.text&&x.name===t.name)) THOUGHTS.push({text:t.text,name:t.name}); });
+    }
+    delete window[cb]; sc.remove();
+  };
+  sc.onerror=()=>{ clearTimeout(t);setDbStatus('offline — data loads when connected',false);delete window[cb];sc.remove(); };
+  document.head.appendChild(sc);
+}
+
+// ─── THOUGHT SCHEDULER (unchanged) ───────────────────────────
+setInterval(spawnThought, 9000);
+setTimeout(spawnThought, 5000);
+
+// ─── ROUNDRECT POLYFILL ───────────────────────────────────────
+if(!CanvasRenderingContext2D.prototype.roundRect){
+  CanvasRenderingContext2D.prototype.roundRect=function(x,y,w,h,r){
+    const ra=Array.isArray(r)?r[0]:r; this.beginPath();
+    this.moveTo(x+ra,y); this.lineTo(x+w-ra,y); this.quadraticCurveTo(x+w,y,x+w,y+ra);
+    this.lineTo(x+w,y+h-ra); this.quadraticCurveTo(x+w,y+h,x+w-ra,y+h);
+    this.lineTo(x+ra,y+h); this.quadraticCurveTo(x,y+h,x,y+h-ra);
+    this.lineTo(x,y+ra); this.quadraticCurveTo(x,y,x+ra,y); this.closePath(); return this;
+  };
+}
+
+// ─── INIT ─────────────────────────────────────────────────────
+function init(){
+  resize();
+  spawnFireflies();
+  requestAnimationFrame(loop);
+  loadFromSheet();
+}
+window.addEventListener('load', init);
+</script>
+</body>
+</html>
